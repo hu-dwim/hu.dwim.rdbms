@@ -155,5 +155,5 @@
   ;; raise an error instead.
   ;;
   ;; cf. https://marijnhaverbeke.nl/postmodern/cl-postgres.html
-  (let ((cl-postgres:*silently-truncate-rationals* nil))
+  (let ((cl-postgres:*silently-truncate-ratios* nil))
     (call-next-method)))
