@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/attila-lendvai/dwim-ci:amd64
+      options: --init
+
+    timeout-minutes: 10   # stop the job if it runs longer than 30 minutes
+
+    # only works when not using containers
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env:
+    #       POSTGRES_DB: hu.dwim.rdbms.test
+    #       POSTGRES_USER: hu.dwim.rdbms.test
+    #       POSTGRES_PASSWORD: engedjbe
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd="pg_isready -U hu.dwim.rdbms.test"
+    #       --health-interval=10s
+    #       --health-timeout=5s
+    #       --health-retries=5
+
+    # env:
+    #   DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
+
+    steps:
+      - name: System info
+        run: |
+          echo "===== OS Info ====="
+          uname -a
+          sw_vers || lsb_release -a || cat /etc/os-release || true
+          echo "===== CPU Info ====="
+          uname -m
+          sysctl -n machdep.cpu.brand_string || lscpu || true
+          echo "===== Environment ====="
+          env
+
+      - name: Start PostgreSQL
+        run: |
+          sudo service postgresql start
+
+      - name: Setup CL env
+        run: |
+          mkdir -p $HOME/common-lisp/
+          mkdir -p $HOME/.config/common-lisp/
+          echo '(:source-registry (:tree (:home "common-lisp/")) :ignore-inherited-configuration)' >$HOME/.config/common-lisp/source-registry.conf
+
+      - name: Clone some git repos instead of quicklisp
+        run: |
+          cd "$HOME/common-lisp"
+          git clone --branch 3.3.7.4 --depth 1 https://gitlab.common-lisp.net/asdf/asdf.git
+          git clone --depth 1 https://github.com/hu-dwim/hu.dwim.asdf.git
+          git clone --depth 1 https://github.com/hu-dwim/hu.dwim.logger.git
+          git clone --depth 1 https://github.com/hu-dwim/hu.dwim.syntax-sugar.git
+          git clone --depth 1 https://github.com/hu-dwim/hu.dwim.util.git
+          git clone --depth 1 https://github.com/hu-dwim/hu.dwim.walker.git
+          git clone --depth 1 https://github.com/hu-dwim/hu.dwim.stefil.git
+          git clone --branch v2.32 --depth 1 https://github.com/slime/slime.git
+
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -U hu.dwim.rdbms.test; do
+            sleep 1
+          done
+          sudo -u postgres psql -c "CREATE USER \"hu.dwim.rdbms.test\" WITH PASSWORD 'engedjbe';"
+          sudo -u postgres psql -c "CREATE DATABASE \"hu.dwim.rdbms.test\" OWNER \"hu.dwim.rdbms.test\";"
+
+      - name: Run tests
+        run: |
+          curl -O https://beta.quicklisp.org/quicklisp.lisp
+          pwd
+          echo "HOME=$HOME"
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -l
+          bin/run-tests.sh
