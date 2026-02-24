@@ -15,9 +15,13 @@
             (find-class class-name))))))
 
 (def definer syntax-test (name database args &body body)
-  `(def test ,name ,args
-     (with-database (closer-mop:class-prototype (find-database-class ',database))
-       ,@body)))
+  (with-unique-names (db)
+    `(def test ,name ,args
+       (let ((,db (find-database-class ',database)))
+         (if ,db
+             (with-database (closer-mop:class-prototype ,db)
+               ,@body)
+             (rdbms.warn "Skipping syntax-text ~S due to missing database class ~S" ',name ',database))))))
 
 (def definer dialect-test (name kind &body body)
   `(def test ,name ()
