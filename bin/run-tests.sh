@@ -59,7 +59,7 @@ exec ${LISP} --dynamic-space-size "${DWIM_MAXIMUM_MEMORY_SIZE}" --noinform --end
   --eval "(progn #-quicklisp(quicklisp-quickstart:install))" \
   --eval "(load (uiop:subpathname (user-homedir-pathname) \"quicklisp/setup.lisp\"))" \
   --eval "(with-open-file (s \"${0}\" :element-type 'character) (read-line s) (load s))" \
-  --end-toplevel-options 2>&1 | tee ${BUILD_LOG_FILE}
+  --end-toplevel-options
 
 # optionally, after loading ASDF:
 # --eval "(declaim (optimize debug))" \
