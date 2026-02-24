@@ -54,7 +54,7 @@
   :defsystem-depends-on (:hu.dwim.asdf)
   :class "hu.dwim.asdf:hu.dwim.test-system"
   :depends-on (:hu.dwim.rdbms
-               :hu.dwim.stefil+hu.dwim.def+swank)
+               :hu.dwim.stefil+hu.dwim.def)
   :components ((:module "test"
                 :components ((:file "basic" :depends-on ("suite"))
                              (:file "package")
